@@ -2,8 +2,8 @@
   "name": "basic",
   "type": "module",
   "scripts": {
-    "dev:watch": "vite build --mode client && vite build --watch & wrangler dev",
     "build": "vite build --mode client && vite build",
+    "build:watch": "vite build --mode client && vite build --watch",
     "preview": "wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },

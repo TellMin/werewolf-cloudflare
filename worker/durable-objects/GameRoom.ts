@@ -3,33 +3,46 @@ import { Env } from "hono/types";
 
 type GamePhase = "waiting" | "playing" | "finished";
 
+type Role = "villager" | "werewolf";
+
+interface RoleConfig {
+  villager: number;
+  werewolf: number;
+}
+
 interface Session {
   webSocket: WebSocket;
   userId: string;
   userName: string;
   isHost: boolean;
+  role?: Role;
 }
 
 interface ChatMessage {
-  type: "join" | "leave" | "message" | "system" | "phase_change";
+  type: "join" | "leave" | "message" | "system" | "phase_change" | "role_config_update" | "role_assigned";
   userId?: string;
   userName?: string;
   message?: string;
   timestamp: number;
   phase?: GamePhase;
   isHost?: boolean;
+  roleConfig?: RoleConfig;
+  role?: Role;
+  canStartGame?: boolean;
 }
 
 export class GameRoom extends DurableObject {
   private sessions: Map<string, Session>;
   private phase: GamePhase;
   private hostUserId: string | null;
+  private roleConfig: RoleConfig;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sessions = new Map();
     this.phase = "waiting";
     this.hostUserId = null;
+    this.roleConfig = { villager: 0, werewolf: 0 };
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -84,6 +97,7 @@ export class GameRoom extends DurableObject {
       userName: s.userName,
       isHost: s.isHost,
     }));
+    const canStartGame = this.validateRoleConfig();
     server.send(
       JSON.stringify({
         type: "system",
@@ -91,6 +105,8 @@ export class GameRoom extends DurableObject {
         participants: participantList,
         phase: this.phase,
         isHost,
+        roleConfig: this.roleConfig,
+        canStartGame,
         timestamp: Date.now(),
       })
     );
@@ -126,10 +142,41 @@ export class GameRoom extends DurableObject {
           : new TextDecoder().decode(message);
       const parsedMessage = JSON.parse(data);
 
+      // 役職配分の更新(ホストのみ)
+      if (parsedMessage.type === "update_role_config" && session.isHost) {
+        const newConfig = parsedMessage.roleConfig as RoleConfig;
+        if (newConfig && typeof newConfig.villager === "number" && typeof newConfig.werewolf === "number") {
+          this.roleConfig = newConfig;
+          const canStartGame = this.validateRoleConfig();
+          this.broadcast({
+            type: "role_config_update",
+            roleConfig: this.roleConfig,
+            canStartGame,
+            timestamp: Date.now(),
+          });
+        }
+        return;
+      }
+
       // フェーズ変更リクエストの処理（ホストのみ）
       if (parsedMessage.type === "change_phase" && session.isHost) {
         const newPhase = parsedMessage.phase as GamePhase;
         if (["waiting", "playing", "finished"].includes(newPhase)) {
+          // playingに移行する場合、役職を割り当てる
+          if (newPhase === "playing" && this.phase === "waiting") {
+            if (!this.validateRoleConfig()) {
+              // 役職配分が不正な場合はエラーを返す
+              session.webSocket.send(
+                JSON.stringify({
+                  type: "system",
+                  message: "役職配分が参加人数と一致していません",
+                  timestamp: Date.now(),
+                })
+              );
+              return;
+            }
+            this.assignRoles();
+          }
           this.phase = newPhase;
           this.broadcast({
             type: "phase_change",
@@ -198,5 +245,49 @@ export class GameRoom extends DurableObject {
         }
       }
     }
+  }
+
+  // 役職配分の妥当性を検証
+  private validateRoleConfig(): boolean {
+    const totalRoles = this.roleConfig.villager + this.roleConfig.werewolf;
+    const totalParticipants = this.sessions.size;
+    return totalRoles === totalParticipants && totalParticipants > 0;
+  }
+
+  // 役職をランダムに割り当てる
+  private assignRoles() {
+    // 役職の配列を作成
+    const roles: Role[] = [];
+    for (let i = 0; i < this.roleConfig.villager; i++) {
+      roles.push("villager");
+    }
+    for (let i = 0; i < this.roleConfig.werewolf; i++) {
+      roles.push("werewolf");
+    }
+
+    // Fisher-Yatesアルゴリズムでシャッフル
+    for (let i = roles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [roles[i], roles[j]] = [roles[j], roles[i]];
+    }
+
+    // セッションに役職を割り当て
+    const sessionList = Array.from(this.sessions.values());
+    sessionList.forEach((session, index) => {
+      session.role = roles[index];
+
+      // 各ユーザーに自分の役職を通知
+      try {
+        session.webSocket.send(
+          JSON.stringify({
+            type: "role_assigned",
+            role: session.role,
+            timestamp: Date.now(),
+          })
+        );
+      } catch (error) {
+        console.error("Failed to send role to session:", error);
+      }
+    });
   }
 }
