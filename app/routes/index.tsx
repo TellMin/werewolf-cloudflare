@@ -1,4 +1,4 @@
-import { createRoute } from 'honox/factory'
+import { createRoute } from "honox/factory";
 
 export default createRoute((c) => {
   return c.render(
@@ -14,10 +14,15 @@ export default createRoute((c) => {
 
           {/* ルーム作成 */}
           <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Create New Room</h2>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+              Create New Room
+            </h2>
             <form id="createRoomForm" class="space-y-4">
               <div>
-                <label for="createRoomId" class="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  for="createRoomId"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Room ID
                 </label>
                 <input
@@ -30,7 +35,10 @@ export default createRoute((c) => {
                 />
               </div>
               <div>
-                <label for="createUserName" class="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  for="createUserName"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Your Name
                 </label>
                 <input
@@ -53,10 +61,15 @@ export default createRoute((c) => {
 
           {/* ルーム参加 */}
           <div class="bg-white rounded-lg shadow-lg p-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Join Existing Room</h2>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+              Join Existing Room
+            </h2>
             <form id="joinRoomForm" class="space-y-4">
               <div>
-                <label for="joinRoomId" class="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  for="joinRoomId"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Room ID
                 </label>
                 <input
@@ -69,7 +82,10 @@ export default createRoute((c) => {
                 />
               </div>
               <div>
-                <label for="joinUserName" class="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  for="joinUserName"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Your Name
                 </label>
                 <input
@@ -102,8 +118,9 @@ export default createRoute((c) => {
         </div>
       </div>
 
-      <script dangerouslySetInnerHTML={{
-        __html: `
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
           document.getElementById('createRoomForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const roomId = document.getElementById('createRoomId').value;
@@ -123,8 +140,9 @@ export default createRoute((c) => {
             const randomName = 'User-' + Math.random().toString(36).substring(2, 7);
             window.location.href = '/room/' + randomId + '?userName=' + randomName;
           });
-        `
-      }} />
+        `,
+        }}
+      />
     </div>
-  )
-})
+  );
+});

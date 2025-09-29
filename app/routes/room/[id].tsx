@@ -1,9 +1,9 @@
-import { createRoute } from 'honox/factory'
-import Chat from '../../islands/chat'
+import { createRoute } from "honox/factory";
+import Chat from "../../islands/chat";
 
 export default createRoute((c) => {
-  const roomId = c.req.param('id')
-  const userName = c.req.query('userName') || `User-${Date.now().toString(36)}`
+  const roomId = c.req.param("id");
+  const userName = c.req.query("userName") || `User-${Date.now().toString(36)}`;
 
   return c.render(
     <div class="min-h-screen bg-gray-50">
@@ -20,5 +20,5 @@ export default createRoute((c) => {
         </div>
       </div>
     </div>
-  )
-})
+  );
+});

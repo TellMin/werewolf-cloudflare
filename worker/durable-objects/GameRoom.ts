@@ -1,26 +1,35 @@
 import { DurableObject } from "cloudflare:workers";
 import { Env } from "hono/types";
 
+type GamePhase = "waiting" | "playing" | "finished";
+
 interface Session {
   webSocket: WebSocket;
   userId: string;
   userName: string;
+  isHost: boolean;
 }
 
 interface ChatMessage {
-  type: "join" | "leave" | "message" | "system";
+  type: "join" | "leave" | "message" | "system" | "phase_change";
   userId?: string;
   userName?: string;
   message?: string;
   timestamp: number;
+  phase?: GamePhase;
+  isHost?: boolean;
 }
 
 export class GameRoom extends DurableObject {
   private sessions: Map<string, Session>;
+  private phase: GamePhase;
+  private hostUserId: string | null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sessions = new Map();
+    this.phase = "waiting";
+    this.hostUserId = null;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -43,12 +52,19 @@ export class GameRoom extends DurableObject {
     // サーバー側のWebSocketを受け入れ
     this.ctx.acceptWebSocket(server);
 
+    // 最初のユーザーをホストに設定
+    const isHost = this.sessions.size === 0;
+    if (isHost) {
+      this.hostUserId = userId;
+    }
+
     // セッション情報を保存
     const sessionId = crypto.randomUUID();
     this.sessions.set(sessionId, {
       webSocket: server,
       userId,
       userName,
+      isHost,
     });
 
     // 既存のユーザーに新規参加を通知
@@ -62,16 +78,19 @@ export class GameRoom extends DurableObject {
       sessionId
     );
 
-    // 新規ユーザーに現在の参加者リストを送信
+    // 新規ユーザーに現在の参加者リストと状態を送信
     const participantList = Array.from(this.sessions.values()).map((s) => ({
       userId: s.userId,
       userName: s.userName,
+      isHost: s.isHost,
     }));
     server.send(
       JSON.stringify({
         type: "system",
         message: "Connected to room",
         participants: participantList,
+        phase: this.phase,
+        isHost,
         timestamp: Date.now(),
       })
     );
@@ -107,14 +126,30 @@ export class GameRoom extends DurableObject {
           : new TextDecoder().decode(message);
       const parsedMessage = JSON.parse(data);
 
-      // メッセージをブロードキャスト
-      this.broadcast({
-        type: "message",
-        userId: session.userId,
-        userName: session.userName,
-        message: parsedMessage.message,
-        timestamp: Date.now(),
-      });
+      // フェーズ変更リクエストの処理（ホストのみ）
+      if (parsedMessage.type === "change_phase" && session.isHost) {
+        const newPhase = parsedMessage.phase as GamePhase;
+        if (["waiting", "playing", "finished"].includes(newPhase)) {
+          this.phase = newPhase;
+          this.broadcast({
+            type: "phase_change",
+            phase: newPhase,
+            timestamp: Date.now(),
+          });
+        }
+        return;
+      }
+
+      // 通常のメッセージをブロードキャスト
+      if (parsedMessage.message) {
+        this.broadcast({
+          type: "message",
+          userId: session.userId,
+          userName: session.userName,
+          message: parsedMessage.message,
+          timestamp: Date.now(),
+        });
+      }
     } catch (error) {
       console.error("Failed to parse message:", error);
     }
