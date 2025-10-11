@@ -6,7 +6,8 @@ export function validateRoleConfig(
   participantCount: number
 ): boolean {
   const totalRoles = ROLE_LIST.reduce((sum, role) => sum + (roleConfig[role] ?? 0), 0);
-  return totalRoles === participantCount && participantCount > 0;
+  const hasWerewolf = (roleConfig.werewolf ?? 0) > 0;
+  return totalRoles === participantCount && participantCount > 0 && hasWerewolf;
 }
 
 export function validateRoleDistribution(roleConfig: RoleConfig): {
@@ -18,6 +19,10 @@ export function validateRoleDistribution(roleConfig: RoleConfig): {
     acc[team] = (acc[team] ?? 0) + (roleConfig[role] ?? 0);
     return acc;
   }, {});
+
+  if ((roleConfig.werewolf ?? 0) === 0) {
+    return { isValid: false, error: "人狼は最低1人必要です" };
+  }
 
   if ((countsByTeam.werewolves ?? 0) === 0) {
     return { isValid: false, error: "人狼陣営は最低1人必要です" };
