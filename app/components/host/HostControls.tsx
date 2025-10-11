@@ -45,12 +45,9 @@ export default function HostControls({ phase, canStartGame, onPhaseChange }: Hos
           </button>
         )}
         {phase === "vote" && (
-          <button
-            onClick={() => onPhaseChange("finished")}
-            class="px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-          >
-            ゲーム終了
-          </button>
+          <span class="px-4 py-2 text-sm text-gray-600 bg-gray-100 border border-dashed border-gray-300 rounded">
+            投票完了で自動的に終了します
+          </span>
         )}
         {phase === "finished" && (
           <button

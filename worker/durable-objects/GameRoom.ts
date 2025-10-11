@@ -54,6 +54,8 @@ export class GameRoom extends DurableObject {
 
     const participants = this.sessionManager.getParticipants();
     const canStartGame = this.gameState.canStartGame(this.sessionManager.getSessionCount());
+    const voteState = this.gameState.getVoteState();
+    const gameResult = this.gameState.getResult();
 
     this.broadcast.broadcast(
       {
@@ -74,6 +76,9 @@ export class GameRoom extends DurableObject {
       isHost,
       roleConfig: this.gameState.getRoleConfig(),
       canStartGame,
+      selfUserId: userId,
+      voteState: voteState ?? undefined,
+      result: gameResult ?? undefined,
       timestamp: Date.now(),
     });
 
@@ -113,6 +118,19 @@ export class GameRoom extends DurableObject {
         this.messageHandler.handleRoleConfigUpdate(session.userId, parsedMessage.roleConfig);
       } else if (parsedMessage.type === "change_phase") {
         const result = this.messageHandler.handlePhaseChange(session.userId, parsedMessage.phase);
+        if (!result.success && result.error) {
+          this.broadcast.sendToSession(sessionId, {
+            type: "system",
+            message: result.error,
+            timestamp: Date.now(),
+          });
+        }
+      } else if (parsedMessage.type === "cast_vote") {
+        const result = this.messageHandler.handleVote(session.userId, {
+          targetUserId: parsedMessage.targetUserId,
+          abstain: parsedMessage.abstain,
+        });
+
         if (!result.success && result.error) {
           this.broadcast.sendToSession(sessionId, {
             type: "system",

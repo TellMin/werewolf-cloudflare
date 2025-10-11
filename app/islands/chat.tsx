@@ -26,6 +26,9 @@ export default function Chat({ roomId, userName }: ChatProps) {
     myRole,
     canStartGame,
     participants,
+    myUserId,
+    voteState,
+    gameResult,
   } = useGameState(lastMessage);
   const { messages, messagesEndRef } = useChat(lastMessage);
 
@@ -42,6 +45,16 @@ export default function Chat({ roomId, userName }: ChatProps) {
 
   const handleSendMessage = (message: string) => {
     sendMessage({ message });
+  };
+
+  const handleVote = (targetUserId: string | null) => {
+    if (!isConnected) return;
+
+    if (targetUserId === null) {
+      sendMessage({ type: "cast_vote", abstain: true });
+    } else {
+      sendMessage({ type: "cast_vote", targetUserId });
+    }
   };
 
   return (
@@ -88,7 +101,16 @@ export default function Chat({ roomId, userName }: ChatProps) {
       )}
 
       {/* ゲーム画面 */}
-      <GameBoard phase={phase} isHost={isHost} myRole={myRole} />
+      <GameBoard
+        phase={phase}
+        isHost={isHost}
+        myRole={myRole}
+        participants={participants}
+        myUserId={myUserId}
+        voteState={voteState}
+        onVote={handleVote}
+        gameResult={gameResult}
+      />
 
       {/* チャット */}
       <ChatPanel

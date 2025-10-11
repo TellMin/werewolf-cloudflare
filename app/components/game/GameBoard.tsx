@@ -1,4 +1,5 @@
-import { GamePhase, Role } from "@shared/types/game";
+import { GamePhase, Role, VoteState, GameResult } from "@shared/types/game";
+import { User } from "@shared/types/user";
 import WaitingPhase from "./WaitingPhase";
 import NightPhase from "./NightPhase";
 import DayPhase from "./DayPhase";
@@ -9,16 +10,45 @@ interface GameBoardProps {
   phase: GamePhase;
   isHost: boolean;
   myRole: Role | null;
+  participants: User[];
+  myUserId: string | null;
+  voteState: VoteState | null;
+  onVote: (targetUserId: string | null) => void;
+  gameResult: GameResult | null;
 }
 
-export default function GameBoard({ phase, isHost, myRole }: GameBoardProps) {
+export default function GameBoard({
+  phase,
+  isHost,
+  myRole,
+  participants,
+  myUserId,
+  voteState,
+  onVote,
+  gameResult,
+}: GameBoardProps) {
   return (
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       {phase === "waiting" && <WaitingPhase isHost={isHost} />}
       {phase === "night" && <NightPhase myRole={myRole} />}
       {phase === "day" && <DayPhase myRole={myRole} />}
-      {phase === "vote" && <VotePhase myRole={myRole} />}
-      {phase === "finished" && <FinishedPhase myRole={myRole} />}
+      {phase === "vote" && (
+        <VotePhase
+          myRole={myRole}
+          myUserId={myUserId}
+          participants={participants}
+          voteState={voteState}
+          onVote={onVote}
+        />
+      )}
+      {phase === "finished" && (
+        <FinishedPhase
+          myRole={myRole}
+          participants={participants}
+          voteState={voteState}
+          result={gameResult}
+        />
+      )}
     </div>
   );
 }

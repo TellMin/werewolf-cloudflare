@@ -1,4 +1,4 @@
-import { GamePhase, RoleConfig, Role } from "./game";
+import { GamePhase, RoleConfig, Role, VoteState, GameResult } from "./game";
 import { User } from "./user";
 
 export type MessageType =
@@ -9,7 +9,7 @@ export type MessageType =
   | "phase_change"
   | "role_config_update"
   | "role_assigned"
-  | "vote"           // 将来の拡張用
+  | "vote"
   | "action";        // 将来の拡張用
 
 export interface BaseMessage {
@@ -46,11 +46,15 @@ export interface SystemMessage extends BaseMessage {
   isHost?: boolean;
   roleConfig?: RoleConfig;
   canStartGame?: boolean;
+  selfUserId?: string;
+  voteState?: VoteState;
+  result?: GameResult;
 }
 
 export interface PhaseChangeMessage extends BaseMessage {
   type: "phase_change";
   phase: GamePhase;
+  result?: GameResult;
 }
 
 export interface RoleConfigUpdateMessage extends BaseMessage {
@@ -64,6 +68,11 @@ export interface RoleAssignedMessage extends BaseMessage {
   role: Role;
 }
 
+export interface VoteUpdateMessage extends BaseMessage {
+  type: "vote";
+  voteState: VoteState;
+}
+
 export type GameMessage =
   | JoinMessage
   | LeaveMessage
@@ -71,4 +80,5 @@ export type GameMessage =
   | SystemMessage
   | PhaseChangeMessage
   | RoleConfigUpdateMessage
-  | RoleAssignedMessage;
+  | RoleAssignedMessage
+  | VoteUpdateMessage;

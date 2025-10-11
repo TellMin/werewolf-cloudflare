@@ -45,6 +45,32 @@ export default function MessageItem({ message }: MessageItemProps) {
         </div>
       );
     case "phase_change":
+      if (message.phase === "finished" && message.result) {
+        const teamLabels = {
+          villagers: "村人陣営",
+          werewolves: "人狼陣営",
+          neutral: "第3陣営",
+          none: "勝者なし",
+        } as const;
+        const reasonLabels = {
+          execution: "処刑結果",
+          abstain: "棄権多数",
+          no_resolution: "再投票不成立",
+        } as const;
+        const teamLabel = teamLabels[message.result.winnerTeam];
+        const reasonLabel = reasonLabels[message.result.reason];
+        return (
+          <div class="text-center py-2 space-y-1">
+            <span class="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+              ゲームフェーズ: 終了
+            </span>
+            <div class="text-xs text-gray-600">
+              {teamLabel}
+              {message.result.winnerTeam !== "none" ? " の勝利" : ""}（{reasonLabel}）
+            </div>
+          </div>
+        );
+      }
       return (
         <div class="text-center py-2">
           <span class="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
