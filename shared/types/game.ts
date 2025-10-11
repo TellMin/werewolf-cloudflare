@@ -1,11 +1,9 @@
-export type GamePhase = "waiting" | "night" | "day" | "vote" | "finished";
-export type Role = "villager" | "werewolf";
-export type GameMode = "standard" | "advanced"; // 将来の拡張用
+import type { RoleId } from "@shared/roles";
 
-export interface RoleConfig {
-  villager: number;
-  werewolf: number;
-}
+export type GamePhase = "waiting" | "night" | "day" | "vote" | "finished";
+export type Role = RoleId;
+export type RoleConfig = Record<Role, number>;
+export type GameMode = "standard" | "advanced"; // 将来の拡張用
 
 export interface GameState {
   phase: GamePhase;

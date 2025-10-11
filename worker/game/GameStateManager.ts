@@ -1,5 +1,6 @@
 import { GamePhase, RoleConfig, GameState } from "@shared/types/game";
 import { validateRoleConfig } from "@shared/utils/validation";
+import { createEmptyRoleConfig, normalizeRoleConfig } from "@shared/roles";
 
 export class GameStateManager {
   private state: GameState;
@@ -7,7 +8,7 @@ export class GameStateManager {
   constructor() {
     this.state = {
       phase: "waiting",
-      roleConfig: { villager: 0, werewolf: 0 },
+      roleConfig: createEmptyRoleConfig(),
       mode: "standard",
     };
   }
@@ -25,7 +26,7 @@ export class GameStateManager {
   }
 
   updateRoleConfig(config: RoleConfig): void {
-    this.state.roleConfig = config;
+    this.state.roleConfig = normalizeRoleConfig(config);
   }
 
   canStartGame(participantCount: number): boolean {
@@ -33,6 +34,9 @@ export class GameStateManager {
   }
 
   getState(): GameState {
-    return { ...this.state };
+    return {
+      ...this.state,
+      roleConfig: { ...this.state.roleConfig },
+    };
   }
 }

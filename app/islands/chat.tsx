@@ -8,7 +8,8 @@ import RoleConfigPanel from "../components/host/RoleConfigPanel";
 import HostControls from "../components/host/HostControls";
 import GameBoard from "../components/game/GameBoard";
 import ChatPanel from "../components/chat/ChatPanel";
-import { GamePhase, RoleConfig } from "@shared/types/game";
+import { GamePhase, Role } from "@shared/types/game";
+import { normalizeRoleConfig } from "@shared/roles";
 
 interface ChatProps {
   roomId: string;
@@ -32,11 +33,9 @@ export default function Chat({ roomId, userName }: ChatProps) {
     sendMessage({ type: "change_phase", phase: newPhase });
   };
 
-  const handleRoleChange = (role: keyof RoleConfig, increment: number) => {
-    const newConfig = {
-      ...roleConfig,
-      [role]: Math.max(0, roleConfig[role] + increment),
-    };
+  const handleRoleChange = (role: Role, increment: number) => {
+    const updatedCount = Math.max(0, (roleConfig[role] ?? 0) + increment);
+    const newConfig = normalizeRoleConfig({ ...roleConfig, [role]: updatedCount });
     setRoleConfig(newConfig);
     sendMessage({ type: "update_role_config", roleConfig: newConfig });
   };

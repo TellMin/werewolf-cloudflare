@@ -2,11 +2,12 @@ import { useState, useEffect } from "hono/jsx";
 import { GamePhase, RoleConfig, Role } from "@shared/types/game";
 import { User } from "@shared/types/user";
 import { GameMessage } from "@shared/types/message";
+import { createEmptyRoleConfig, normalizeRoleConfig } from "@shared/roles";
 
 export function useGameState(lastMessage: GameMessage | null) {
   const [phase, setPhase] = useState<GamePhase>("waiting");
   const [isHost, setIsHost] = useState(false);
-  const [roleConfig, setRoleConfig] = useState<RoleConfig>({ villager: 0, werewolf: 0 });
+  const [roleConfig, setRoleConfig] = useState<RoleConfig>(createEmptyRoleConfig);
   const [myRole, setMyRole] = useState<Role | null>(null);
   const [canStartGame, setCanStartGame] = useState(false);
   const [participants, setParticipants] = useState<User[]>([]);
@@ -19,7 +20,7 @@ export function useGameState(lastMessage: GameMessage | null) {
         if (lastMessage.participants) setParticipants(lastMessage.participants);
         if (lastMessage.phase) setPhase(lastMessage.phase);
         if (lastMessage.isHost !== undefined) setIsHost(lastMessage.isHost);
-        if (lastMessage.roleConfig) setRoleConfig(lastMessage.roleConfig);
+        if (lastMessage.roleConfig) setRoleConfig(normalizeRoleConfig(lastMessage.roleConfig));
         if (lastMessage.canStartGame !== undefined) setCanStartGame(lastMessage.canStartGame);
         break;
 
@@ -33,7 +34,7 @@ export function useGameState(lastMessage: GameMessage | null) {
         break;
 
       case "role_config_update":
-        if (lastMessage.roleConfig) setRoleConfig(lastMessage.roleConfig);
+        if (lastMessage.roleConfig) setRoleConfig(normalizeRoleConfig(lastMessage.roleConfig));
         if (lastMessage.canStartGame !== undefined) setCanStartGame(lastMessage.canStartGame);
         break;
 

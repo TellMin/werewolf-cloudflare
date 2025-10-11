@@ -1,12 +1,13 @@
-import { Role, RoleConfig } from "../types/game";
+import { Role, RoleConfig } from "@shared/types/game";
+import { ROLE_LIST } from "@shared/roles";
 
 export function createRoleArray(config: RoleConfig): Role[] {
   const roles: Role[] = [];
-  for (let i = 0; i < config.villager; i++) {
-    roles.push("villager");
-  }
-  for (let i = 0; i < config.werewolf; i++) {
-    roles.push("werewolf");
+  for (const role of ROLE_LIST) {
+    const count = config[role] ?? 0;
+    for (let i = 0; i < count; i++) {
+      roles.push(role);
+    }
   }
   return roles;
 }

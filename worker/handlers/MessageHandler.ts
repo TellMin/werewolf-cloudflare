@@ -3,6 +3,7 @@ import { RoleManager } from "../game/RoleManager";
 import { SessionManager } from "../session/SessionManager";
 import { BroadcastService } from "../session/BroadcastService";
 import { GamePhase, RoleConfig } from "@shared/types/game";
+import { normalizeRoleConfig } from "@shared/roles";
 
 export class MessageHandler {
   constructor(
@@ -57,12 +58,13 @@ export class MessageHandler {
       return { success: false };
     }
 
-    this.gameState.updateRoleConfig(newConfig);
+    const normalized = normalizeRoleConfig(newConfig);
+    this.gameState.updateRoleConfig(normalized);
     const canStartGame = this.gameState.canStartGame(this.sessionManager.getSessionCount());
 
     this.broadcast.broadcast({
       type: "role_config_update",
-      roleConfig: newConfig,
+      roleConfig: normalized,
       canStartGame,
       timestamp: Date.now(),
     });
