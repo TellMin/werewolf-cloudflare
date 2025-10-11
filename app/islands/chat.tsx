@@ -121,8 +121,16 @@ export default function Chat({ roomId, userName }: ChatProps) {
       console.error("WebSocket error:", error);
     };
 
+    // Heartbeat: 30秒ごとにpingメッセージを送信して接続を維持
+    const heartbeatInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 5000); // 5秒
+
     // クリーンアップ
     return () => {
+      clearInterval(heartbeatInterval);
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
