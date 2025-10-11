@@ -6,6 +6,11 @@ import honox from "honox/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@shared": "/shared",
+    },
+  },
   plugins: [
     honox({
       devServer: {

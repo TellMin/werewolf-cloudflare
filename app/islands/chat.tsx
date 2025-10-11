@@ -1,33 +1,7 @@
 import { useState, useEffect, useRef } from "hono/jsx";
-
-type GamePhase = "waiting" | "night" | "day" | "vote" | "finished";
-type Role = "villager" | "werewolf";
-
-interface RoleConfig {
-  villager: number;
-  werewolf: number;
-}
-
-interface ChatMessage {
-  type:
-    | "join"
-    | "leave"
-    | "message"
-    | "system"
-    | "phase_change"
-    | "role_config_update"
-    | "role_assigned";
-  userId?: string;
-  userName?: string;
-  message?: string;
-  timestamp: number;
-  participants?: Array<{ userId: string; userName: string; isHost: boolean }>;
-  phase?: GamePhase;
-  isHost?: boolean;
-  roleConfig?: RoleConfig;
-  role?: Role;
-  canStartGame?: boolean;
-}
+import { GamePhase, Role, RoleConfig } from "@shared/types/game";
+import { User } from "@shared/types/user";
+import { GameMessage } from "@shared/types/message";
 
 interface ChatProps {
   roomId: string;
@@ -35,12 +9,10 @@ interface ChatProps {
 }
 
 export default function Chat({ roomId, userName }: ChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<GameMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [participants, setParticipants] = useState<
-    Array<{ userId: string; userName: string; isHost: boolean }>
-  >([]);
+  const [participants, setParticipants] = useState<User[]>([]);
   const [phase, setPhase] = useState<GamePhase>("waiting");
   const [isHost, setIsHost] = useState(false);
   const [roleConfig, setRoleConfig] = useState<RoleConfig>({
@@ -69,7 +41,7 @@ export default function Chat({ roomId, userName }: ChatProps) {
 
     ws.onmessage = (event) => {
       try {
-        const message: ChatMessage = JSON.parse(event.data);
+        const message: GameMessage = JSON.parse(event.data);
 
         // 役職割り当てメッセージの処理
         if (message.type === "role_assigned" && message.role) {
@@ -217,7 +189,7 @@ export default function Chat({ roomId, userName }: ChatProps) {
     });
   };
 
-  const renderMessage = (msg: ChatMessage, index: number) => {
+  const renderMessage = (msg: GameMessage, index: number) => {
     switch (msg.type) {
       case "system":
         return (

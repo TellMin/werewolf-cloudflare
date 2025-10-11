@@ -1,36 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
 import { Env } from "hono/types";
-
-type GamePhase = "waiting" | "night" | "day" | "vote" | "finished";
-
-type Role = "villager" | "werewolf";
-
-interface RoleConfig {
-  villager: number;
-  werewolf: number;
-}
-
-interface Session {
-  webSocket: WebSocket;
-  userId: string;
-  userName: string;
-  isHost: boolean;
-  role?: Role;
-}
-
-interface ChatMessage {
-  type: "join" | "leave" | "message" | "system" | "phase_change" | "role_config_update" | "role_assigned";
-  userId?: string;
-  userName?: string;
-  message?: string;
-  timestamp: number;
-  phase?: GamePhase;
-  isHost?: boolean;
-  roleConfig?: RoleConfig;
-  role?: Role;
-  canStartGame?: boolean;
-  participants?: Array<{ userId: string; userName: string; isHost: boolean }>;
-}
+import { GamePhase, Role, RoleConfig } from "@shared/types/game";
+import { Session, User } from "@shared/types/user";
+import { GameMessage } from "@shared/types/message";
+import { validateRoleConfig } from "@shared/utils/validation";
+import { assignRoles } from "@shared/utils/role-assignment";
 
 export class GameRoom extends DurableObject {
   private sessions: Map<string, Session>;
@@ -82,12 +56,12 @@ export class GameRoom extends DurableObject {
     });
 
     // 参加者リストを生成
-    const participantList = Array.from(this.sessions.values()).map((s) => ({
+    const participantList: User[] = Array.from(this.sessions.values()).map((s) => ({
       userId: s.userId,
       userName: s.userName,
       isHost: s.isHost,
     }));
-    const canStartGame = this.validateRoleConfig();
+    const canStartGame = validateRoleConfig(this.roleConfig, this.sessions.size);
 
     // 既存のユーザーに新規参加を通知（参加者リスト付き）
     this.broadcast(
@@ -151,7 +125,7 @@ export class GameRoom extends DurableObject {
         const newConfig = parsedMessage.roleConfig as RoleConfig;
         if (newConfig && typeof newConfig.villager === "number" && typeof newConfig.werewolf === "number") {
           this.roleConfig = newConfig;
-          const canStartGame = this.validateRoleConfig();
+          const canStartGame = validateRoleConfig(this.roleConfig, this.sessions.size);
           this.broadcast({
             type: "role_config_update",
             roleConfig: this.roleConfig,
@@ -168,7 +142,7 @@ export class GameRoom extends DurableObject {
         if (["waiting", "night", "day", "vote", "finished"].includes(newPhase)) {
           // nightに移行する場合、役職を割り当てる
           if (newPhase === "night" && this.phase === "waiting") {
-            if (!this.validateRoleConfig()) {
+            if (!validateRoleConfig(this.roleConfig, this.sessions.size)) {
               // 役職配分が不正な場合はエラーを返す
               session.webSocket.send(
                 JSON.stringify({
@@ -179,7 +153,7 @@ export class GameRoom extends DurableObject {
               );
               return;
             }
-            this.assignRoles();
+            this.assignRolesToSessions();
           }
           this.phase = newPhase;
           this.broadcast({
@@ -218,7 +192,7 @@ export class GameRoom extends DurableObject {
         this.sessions.delete(sessionId);
 
         // 退室後の参加者リストを生成
-        const participantList = Array.from(this.sessions.values()).map((s) => ({
+        const participantList: User[] = Array.from(this.sessions.values()).map((s) => ({
           userId: s.userId,
           userName: s.userName,
           isHost: s.isHost,
@@ -245,7 +219,7 @@ export class GameRoom extends DurableObject {
   }
 
   // 全セッションにメッセージをブロードキャスト
-  private broadcast(message: ChatMessage, excludeSessionId?: string) {
+  private broadcast(message: GameMessage, excludeSessionId?: string) {
     const messageStr = JSON.stringify(message);
 
     for (const [sessionId, session] of this.sessions.entries()) {
@@ -259,29 +233,10 @@ export class GameRoom extends DurableObject {
     }
   }
 
-  // 役職配分の妥当性を検証
-  private validateRoleConfig(): boolean {
-    const totalRoles = this.roleConfig.villager + this.roleConfig.werewolf;
-    const totalParticipants = this.sessions.size;
-    return totalRoles === totalParticipants && totalParticipants > 0;
-  }
-
   // 役職をランダムに割り当てる
-  private assignRoles() {
-    // 役職の配列を作成
-    const roles: Role[] = [];
-    for (let i = 0; i < this.roleConfig.villager; i++) {
-      roles.push("villager");
-    }
-    for (let i = 0; i < this.roleConfig.werewolf; i++) {
-      roles.push("werewolf");
-    }
-
-    // Fisher-Yatesアルゴリズムでシャッフル
-    for (let i = roles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [roles[i], roles[j]] = [roles[j], roles[i]];
-    }
+  private assignRolesToSessions() {
+    // 共有ユーティリティで役職を割り当て
+    const roles = assignRoles(this.roleConfig);
 
     // セッションに役職を割り当て
     const sessionList = Array.from(this.sessions.values());
