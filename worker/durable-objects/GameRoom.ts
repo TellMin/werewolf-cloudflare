@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { Env } from "hono/types";
 
-type GamePhase = "waiting" | "playing" | "finished";
+type GamePhase = "waiting" | "night" | "day" | "vote" | "finished";
 
 type Role = "villager" | "werewolf";
 
@@ -165,9 +165,9 @@ export class GameRoom extends DurableObject {
       // フェーズ変更リクエストの処理（ホストのみ）
       if (parsedMessage.type === "change_phase" && session.isHost) {
         const newPhase = parsedMessage.phase as GamePhase;
-        if (["waiting", "playing", "finished"].includes(newPhase)) {
-          // playingに移行する場合、役職を割り当てる
-          if (newPhase === "playing" && this.phase === "waiting") {
+        if (["waiting", "night", "day", "vote", "finished"].includes(newPhase)) {
+          // nightに移行する場合、役職を割り当てる
+          if (newPhase === "night" && this.phase === "waiting") {
             if (!this.validateRoleConfig()) {
               // 役職配分が不正な場合はエラーを返す
               session.webSocket.send(

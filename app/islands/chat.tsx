@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "hono/jsx";
 
-type GamePhase = "waiting" | "playing" | "finished";
+type GamePhase = "waiting" | "night" | "day" | "vote" | "finished";
 type Role = "villager" | "werewolf";
 
 interface RoleConfig {
@@ -9,7 +9,14 @@ interface RoleConfig {
 }
 
 interface ChatMessage {
-  type: "join" | "leave" | "message" | "system" | "phase_change" | "role_config_update" | "role_assigned";
+  type:
+    | "join"
+    | "leave"
+    | "message"
+    | "system"
+    | "phase_change"
+    | "role_config_update"
+    | "role_assigned";
   userId?: string;
   userName?: string;
   message?: string;
@@ -36,7 +43,10 @@ export default function Chat({ roomId, userName }: ChatProps) {
   >([]);
   const [phase, setPhase] = useState<GamePhase>("waiting");
   const [isHost, setIsHost] = useState(false);
-  const [roleConfig, setRoleConfig] = useState<RoleConfig>({ villager: 0, werewolf: 0 });
+  const [roleConfig, setRoleConfig] = useState<RoleConfig>({
+    villager: 0,
+    werewolf: 0,
+  });
   const [myRole, setMyRole] = useState<Role | null>(null);
   const [canStartGame, setCanStartGame] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -220,11 +230,13 @@ export default function Chat({ roomId, userName }: ChatProps) {
       case "role_assigned":
         return (
           <div key={index} class="text-center py-2">
-            <span class={`text-sm px-3 py-1 rounded-full font-bold ${
-              msg.role === "werewolf"
-                ? "text-red-600 bg-red-50"
-                : "text-green-600 bg-green-50"
-            }`}>
+            <span
+              class={`text-sm px-3 py-1 rounded-full font-bold ${
+                msg.role === "werewolf"
+                  ? "text-red-600 bg-red-50"
+                  : "text-green-600 bg-green-50"
+              }`}
+            >
               あなたの役職: {msg.role === "werewolf" ? "🐺 人狼" : "👤 村人"}
             </span>
           </div>
@@ -244,8 +256,12 @@ export default function Chat({ roomId, userName }: ChatProps) {
               ゲームフェーズ:{" "}
               {msg.phase === "waiting"
                 ? "待機中"
-                : msg.phase === "playing"
-                ? "プレイ中"
+                : msg.phase === "night"
+                ? "🌙 夜"
+                : msg.phase === "day"
+                ? "☀️ 昼"
+                : msg.phase === "vote"
+                ? "🗳️ 投票"
                 : "終了"}
             </span>
           </div>
@@ -329,8 +345,12 @@ export default function Chat({ roomId, userName }: ChatProps) {
         <div class="text-sm font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-800">
           {phase === "waiting"
             ? "待機中"
-            : phase === "playing"
-            ? "プレイ中"
+            : phase === "night"
+            ? "🌙 夜"
+            : phase === "day"
+            ? "☀️ 昼"
+            : phase === "vote"
+            ? "🗳️ 投票"
             : "終了"}
           {isHost && " (ホスト)"}
         </div>
@@ -407,17 +427,20 @@ export default function Chat({ roomId, userName }: ChatProps) {
             <div class="pt-2 border-t border-purple-200">
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">合計役職数</span>
-                <span class="font-bold">{roleConfig.villager + roleConfig.werewolf}</span>
+                <span class="font-bold">
+                  {roleConfig.villager + roleConfig.werewolf}
+                </span>
               </div>
               <div class="flex justify-between text-sm mt-1">
                 <span class="text-gray-600">参加者数</span>
                 <span class="font-bold">{participants.length}</span>
               </div>
-              {!canStartGame && (roleConfig.villager + roleConfig.werewolf) > 0 && (
-                <div class="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-                  ⚠️ 役職の合計数と参加者数を一致させてください
-                </div>
-              )}
+              {!canStartGame &&
+                roleConfig.villager + roleConfig.werewolf > 0 && (
+                  <div class="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                    ⚠️ 役職の合計数と参加者数を一致させてください
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -429,8 +452,8 @@ export default function Chat({ roomId, userName }: ChatProps) {
           <h3 class="text-sm font-semibold text-gray-700 mb-3">
             ホスト用コントロール
           </h3>
-          <div class="flex gap-2">
-            {phase !== "waiting" && (
+          <div class="flex flex-wrap gap-2">
+            {phase !== "waiting" && phase !== "finished" && (
               <button
                 onClick={() => changePhase("waiting")}
                 class="px-4 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
@@ -440,19 +463,43 @@ export default function Chat({ roomId, userName }: ChatProps) {
             )}
             {phase === "waiting" && (
               <button
-                onClick={() => changePhase("playing")}
+                onClick={() => changePhase("night")}
                 disabled={!canStartGame}
                 class="px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 ゲーム開始
               </button>
             )}
-            {phase === "playing" && (
+            {phase === "night" && (
+              <button
+                onClick={() => changePhase("day")}
+                class="px-4 py-2 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition-colors"
+              >
+                ☀️ 昼へ
+              </button>
+            )}
+            {phase === "day" && (
+              <button
+                onClick={() => changePhase("vote")}
+                class="px-4 py-2 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 transition-colors"
+              >
+                🗳️ 投票へ
+              </button>
+            )}
+            {phase === "vote" && (
               <button
                 onClick={() => changePhase("finished")}
                 class="px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
               >
                 ゲーム終了
+              </button>
+            )}
+            {phase === "finished" && (
+              <button
+                onClick={() => changePhase("waiting")}
+                class="px-4 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+              >
+                待機画面へ
               </button>
             )}
           </div>
@@ -471,35 +518,130 @@ export default function Chat({ roomId, userName }: ChatProps) {
             </p>
           </div>
         )}
-        {phase === "playing" && (
+        {phase === "night" && (
           <div class="py-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">
-              ゲームプレイ中
-            </h2>
+            <div class="text-center mb-6">
+              <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                🌙 夜のフェーズ
+              </h2>
+              {/* <p class="text-gray-600">人狼は襲撃する相手を選んでください</p> */}
+            </div>
             {myRole && (
               <div class="max-w-md mx-auto">
-                <div class={`border-2 rounded-lg p-6 text-center ${
-                  myRole === "werewolf"
-                    ? "border-red-300 bg-red-50"
-                    : "border-green-300 bg-green-50"
-                }`}>
+                <div
+                  class={`border-2 rounded-lg p-6 text-center ${
+                    myRole === "werewolf"
+                      ? "border-red-300 bg-red-50"
+                      : "border-green-300 bg-green-50"
+                  }`}
+                >
                   <div class="text-4xl mb-3">
                     {myRole === "werewolf" ? "🐺" : "👤"}
                   </div>
-                  <h3 class={`text-xl font-bold mb-2 ${
-                    myRole === "werewolf" ? "text-red-700" : "text-green-700"
-                  }`}>
+                  <h3
+                    class={`text-xl font-bold mb-2 ${
+                      myRole === "werewolf" ? "text-red-700" : "text-green-700"
+                    }`}
+                  >
                     あなたの役職
                   </h3>
-                  <p class={`text-2xl font-bold ${
-                    myRole === "werewolf" ? "text-red-600" : "text-green-600"
-                  }`}>
+                  <p
+                    class={`text-2xl font-bold ${
+                      myRole === "werewolf" ? "text-red-600" : "text-green-600"
+                    }`}
+                  >
+                    {myRole === "werewolf" ? "人狼" : "村人"}
+                  </p>
+                  {/* <p class="text-sm text-gray-600 mt-3">
+                    {myRole === "werewolf"
+                      ? "襲撃する相手を選んでください"
+                      : "村人は目を閉じて待機してください"}
+                  </p> */}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {phase === "day" && (
+          <div class="py-8">
+            <div class="text-center mb-6">
+              <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                ☀️ 昼のフェーズ
+              </h2>
+              <p class="text-gray-600">誰が人狼か話し合いましょう</p>
+            </div>
+            {myRole && (
+              <div class="max-w-md mx-auto">
+                <div
+                  class={`border-2 rounded-lg p-6 text-center ${
+                    myRole === "werewolf"
+                      ? "border-red-300 bg-red-50"
+                      : "border-green-300 bg-green-50"
+                  }`}
+                >
+                  <div class="text-4xl mb-3">
+                    {myRole === "werewolf" ? "🐺" : "👤"}
+                  </div>
+                  <h3
+                    class={`text-xl font-bold mb-2 ${
+                      myRole === "werewolf" ? "text-red-700" : "text-green-700"
+                    }`}
+                  >
+                    あなたの役職
+                  </h3>
+                  <p
+                    class={`text-2xl font-bold ${
+                      myRole === "werewolf" ? "text-red-600" : "text-green-600"
+                    }`}
+                  >
                     {myRole === "werewolf" ? "人狼" : "村人"}
                   </p>
                   <p class="text-sm text-gray-600 mt-3">
                     {myRole === "werewolf"
-                      ? "他の人に気づかれないよう行動してください"
+                      ? "疑われないように振る舞いましょう"
                       : "人狼を見つけ出しましょう"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {phase === "vote" && (
+          <div class="py-8">
+            <div class="text-center mb-6">
+              <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                🗳️ 投票フェーズ
+              </h2>
+              <p class="text-gray-600">人狼だと思う人に投票してください</p>
+            </div>
+            {myRole && (
+              <div class="max-w-md mx-auto">
+                <div
+                  class={`border-2 rounded-lg p-6 text-center ${
+                    myRole === "werewolf"
+                      ? "border-red-300 bg-red-50"
+                      : "border-green-300 bg-green-50"
+                  }`}
+                >
+                  <div class="text-4xl mb-3">
+                    {myRole === "werewolf" ? "🐺" : "👤"}
+                  </div>
+                  <h3
+                    class={`text-xl font-bold mb-2 ${
+                      myRole === "werewolf" ? "text-red-700" : "text-green-700"
+                    }`}
+                  >
+                    あなたの役職
+                  </h3>
+                  <p
+                    class={`text-2xl font-bold ${
+                      myRole === "werewolf" ? "text-red-600" : "text-green-600"
+                    }`}
+                  >
+                    {myRole === "werewolf" ? "人狼" : "村人"}
+                  </p>
+                  <p class="text-sm text-gray-600 mt-3">
+                    投票先を選んでください
                   </p>
                 </div>
               </div>
