@@ -87,6 +87,24 @@ export default function Chat({ roomId, userName }: ChatProps) {
           return;
         }
 
+        // 参加メッセージの処理
+        if (message.type === "join") {
+          if (message.participants) {
+            setParticipants(message.participants);
+          }
+          setMessages((prev) => [...prev, message]);
+          return;
+        }
+
+        // 退室メッセージの処理
+        if (message.type === "leave") {
+          if (message.participants) {
+            setParticipants(message.participants);
+          }
+          setMessages((prev) => [...prev, message]);
+          return;
+        }
+
         // システムメッセージの場合、参加者リストと状態を更新
         if (message.type === "system") {
           if (message.participants) {

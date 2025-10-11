@@ -29,6 +29,7 @@ interface ChatMessage {
   roleConfig?: RoleConfig;
   role?: Role;
   canStartGame?: boolean;
+  participants?: Array<{ userId: string; userName: string; isHost: boolean }>;
 }
 
 export class GameRoom extends DurableObject {
@@ -80,24 +81,27 @@ export class GameRoom extends DurableObject {
       isHost,
     });
 
-    // 既存のユーザーに新規参加を通知
-    this.broadcast(
-      {
-        type: "join",
-        userId,
-        userName,
-        timestamp: Date.now(),
-      },
-      sessionId
-    );
-
-    // 新規ユーザーに現在の参加者リストと状態を送信
+    // 参加者リストを生成
     const participantList = Array.from(this.sessions.values()).map((s) => ({
       userId: s.userId,
       userName: s.userName,
       isHost: s.isHost,
     }));
     const canStartGame = this.validateRoleConfig();
+
+    // 既存のユーザーに新規参加を通知（参加者リスト付き）
+    this.broadcast(
+      {
+        type: "join",
+        userId,
+        userName,
+        participants: participantList,
+        timestamp: Date.now(),
+      },
+      sessionId
+    );
+
+    // 新規ユーザーに現在の参加者リストと状態を送信
     server.send(
       JSON.stringify({
         type: "system",
@@ -213,11 +217,19 @@ export class GameRoom extends DurableObject {
       if (session.webSocket === ws) {
         this.sessions.delete(sessionId);
 
-        // 他のユーザーに退室を通知
+        // 退室後の参加者リストを生成
+        const participantList = Array.from(this.sessions.values()).map((s) => ({
+          userId: s.userId,
+          userName: s.userName,
+          isHost: s.isHost,
+        }));
+
+        // 他のユーザーに退室を通知（参加者リスト付き）
         this.broadcast({
           type: "leave",
           userId: session.userId,
           userName: session.userName,
+          participants: participantList,
           timestamp: Date.now(),
         });
         break;
