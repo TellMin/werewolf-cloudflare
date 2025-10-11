@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "hono/jsx";
-import { Role } from "@shared/types/game";
+import { GRAVEYARD_TARGET_ID, Role } from "@shared/types/game";
 import { User } from "@shared/types/user";
 import RoleCard from "../role/RoleCard";
 
@@ -21,9 +21,20 @@ export default function NightPhase({
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const availableTargets = useMemo(() => {
+  const playerTargets = useMemo(() => {
     return participants.filter((p) => p.userId !== myUserId);
   }, [participants, myUserId]);
+
+  const seerTargets = useMemo(
+    () => [
+      ...playerTargets.map((participant) => ({
+        id: participant.userId,
+        label: participant.userName,
+      })),
+      { id: GRAVEYARD_TARGET_ID, label: "墓地" },
+    ],
+    [playerTargets]
+  );
 
   const isSeer = myRole === "seer";
 
@@ -74,29 +85,29 @@ export default function NightPhase({
             ) : isSeer ? (
               <div class="space-y-3">
                 <p class="text-sm text-indigo-700 font-semibold text-center">
-                  占いたい相手を選んで「占う」を押してください。
+                  占いたい相手（または墓地）を選んで「占う」を押してください。
                 </p>
                 <div class="space-y-2">
-                  {availableTargets.length === 0 ? (
+                  {seerTargets.length === 0 ? (
                     <p class="text-sm text-gray-600 text-center">
                       占える対象がいません。
                     </p>
                   ) : (
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {availableTargets.map((participant) => (
+                      {seerTargets.map((target) => (
                         <button
-                          key={participant.userId}
+                          key={target.id}
                           onClick={() => {
-                            setSelectedTarget(participant.userId);
+                            setSelectedTarget(target.id);
                             setError(null);
                           }}
                           class={`w-full px-4 py-2 rounded border transition-colors ${
-                            selectedTarget === participant.userId
+                            selectedTarget === target.id
                               ? "border-indigo-500 bg-white text-indigo-700 font-semibold"
                               : "border-indigo-200 bg-white hover:border-indigo-400"
                           }`}
                         >
-                          {participant.userName}
+                          {target.label}
                         </button>
                       ))}
                     </div>
@@ -106,7 +117,7 @@ export default function NightPhase({
                 <div class="text-center">
                   <button
                     onClick={handleSubmit}
-                    disabled={availableTargets.length === 0}
+                    disabled={seerTargets.length === 0}
                     class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
                   >
                     占う

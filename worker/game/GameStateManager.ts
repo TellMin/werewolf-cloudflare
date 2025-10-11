@@ -6,6 +6,7 @@ import {
   VoteState,
   GameResult,
   VoteRoundSummary,
+  Role,
 } from "@shared/types/game";
 import { validateRoleConfig } from "@shared/utils/validation";
 import { createEmptyRoleConfig, normalizeRoleConfig, getRoleDefinition } from "@shared/roles";
@@ -28,6 +29,7 @@ export class GameStateManager {
   private voteSession: VoteSessionInternal | null;
   private gameResult: GameResult | null;
   private nightActionStatus: Map<string, boolean>;
+  private graveyardRoles: Role[];
 
   constructor() {
     this.state = {
@@ -38,6 +40,7 @@ export class GameStateManager {
     this.voteSession = null;
     this.gameResult = null;
     this.nightActionStatus = new Map();
+    this.graveyardRoles = [];
   }
 
   getPhase(): GamePhase {
@@ -53,6 +56,7 @@ export class GameStateManager {
       this.gameResult = null;
       this.state.result = null;
       this.nightActionStatus.clear();
+      this.graveyardRoles = [];
       return;
     }
 
@@ -89,6 +93,7 @@ export class GameStateManager {
       roleConfig: { ...this.state.roleConfig },
       voteState: this.state.voteState ? { ...this.state.voteState } : null,
       result: this.state.result ? { ...this.state.result } : null,
+      graveyardRoles: [...this.graveyardRoles],
     };
   }
 
@@ -97,6 +102,14 @@ export class GameStateManager {
     for (const participant of participants) {
       this.nightActionStatus.set(participant.userId, false);
     }
+  }
+
+  setGraveyardRoles(roles: Role[]): void {
+    this.graveyardRoles = [...roles];
+  }
+
+  getGraveyardRoles(): Role[] {
+    return [...this.graveyardRoles];
   }
 
   addNightParticipant(userId: string): void {

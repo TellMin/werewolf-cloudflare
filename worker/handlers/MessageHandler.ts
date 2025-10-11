@@ -2,7 +2,7 @@ import { GameStateManager } from "../game/GameStateManager";
 import { RoleManager } from "../game/RoleManager";
 import { SessionManager } from "../session/SessionManager";
 import { BroadcastService } from "../session/BroadcastService";
-import { GamePhase, RoleConfig } from "@shared/types/game";
+import { GamePhase, RoleConfig, GRAVEYARD_TARGET_ID, VoteChoice } from "@shared/types/game";
 import { normalizeRoleConfig, getRoleDefinition } from "@shared/roles";
 import type { Session } from "@shared/types/user";
 
@@ -26,13 +26,15 @@ export class MessageHandler {
     // nightに移行する場合、役職を割り当て
     if (newPhase === "night" && this.gameState.getPhase() === "waiting") {
       if (!this.gameState.canStartGame(this.sessionManager.getSessionCount())) {
-        return { success: false, error: "役職配分が参加人数と一致していません" };
+        return { success: false, error: "役職配分が参加人数+2と一致していません" };
       }
 
-      const roleMap = this.roleManager.assignRolesToSessions(
+      const { roleMap, graveyardRoles } = this.roleManager.assignRolesToSessions(
         this.sessionManager.getAllSessions(),
         this.gameState.getRoleConfig()
       );
+
+      this.gameState.setGraveyardRoles(graveyardRoles);
 
       // 各ユーザーに役職を通知
       for (const [sessionId, session] of this.sessionManager.getAllSessions().entries()) {
@@ -95,9 +97,30 @@ export class MessageHandler {
         if (!targetUserId) {
           return { success: false, error: "占う対象を選択してください" };
         }
-
         if (targetUserId === session.userId) {
           return { success: false, error: "自分自身を占うことはできません" };
+        }
+
+        if (targetUserId === GRAVEYARD_TARGET_ID) {
+          const graveyardRoles = this.gameState.getGraveyardRoles();
+          if (graveyardRoles.length === 0) {
+            return { success: false, error: "墓地に役職がありません" };
+          }
+
+          const roleNames = graveyardRoles
+            .map((role) => getRoleDefinition(role).name)
+            .join(" と ");
+
+          this.broadcast.sendToSession(sessionId, {
+            type: "message",
+            userId: "gm",
+            userName: "ゲームマスター",
+            message: `🔮 占い結果: 墓地には ${roleNames} が眠っています。`,
+            visibility: "private",
+            recipientUserId: session.userId,
+            timestamp: Date.now(),
+          });
+          break;
         }
 
         const target = this.sessionManager.findSessionByUserId(targetUserId);
@@ -202,11 +225,12 @@ export class MessageHandler {
       return { success: false, error: "現在は投票フェーズではありません" };
     }
 
-    const choice = payload.abstain
-      ? { type: "abstain" }
-      : payload.targetUserId
-      ? { type: "player" as const, userId: payload.targetUserId }
-      : null;
+    let choice: VoteChoice | null = null;
+    if (payload.abstain) {
+      choice = { type: "abstain" };
+    } else if (payload.targetUserId) {
+      choice = { type: "player", userId: payload.targetUserId };
+    }
 
     if (!choice) {
       return { success: false, error: "投票先を選択してください" };

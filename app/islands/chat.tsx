@@ -93,15 +93,14 @@ export default function Chat({ roomId, userName }: ChatProps) {
       {/* 参加者リスト */}
       <ParticipantList participants={participants} />
 
-      {/* 役職配分設定 (ホスト・待機中のみ) */}
-      {isHost && phase === "waiting" && (
-        <RoleConfigPanel
-          roleConfig={roleConfig}
-          participantCount={participants.length}
-          canStartGame={canStartGame}
-          onRoleChange={handleRoleChange}
-        />
-      )}
+      {/* 役職配分設定（常に表示。編集はホストが待機中のみ） */}
+      <RoleConfigPanel
+        roleConfig={roleConfig}
+        participantCount={participants.length}
+        canStartGame={canStartGame}
+        onRoleChange={isHost && phase === "waiting" ? handleRoleChange : undefined}
+        readOnly={!(isHost && phase === "waiting")}
+      />
 
       {/* ホスト用コントロール */}
       {isHost && (

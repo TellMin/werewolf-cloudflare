@@ -1,5 +1,5 @@
 import { ROLE_LIST, getRoleDefinition } from "@shared/roles";
-import { RoleConfig } from "@shared/types/game";
+import { EXTRA_ROLE_SLOTS, RoleConfig } from "@shared/types/game";
 
 export function validateRoleConfig(
   roleConfig: RoleConfig,
@@ -7,7 +7,11 @@ export function validateRoleConfig(
 ): boolean {
   const totalRoles = ROLE_LIST.reduce((sum, role) => sum + (roleConfig[role] ?? 0), 0);
   const hasWerewolf = (roleConfig.werewolf ?? 0) > 0;
-  return totalRoles === participantCount && participantCount > 0 && hasWerewolf;
+  return (
+    participantCount > 0 &&
+    totalRoles === participantCount + EXTRA_ROLE_SLOTS &&
+    hasWerewolf
+  );
 }
 
 export function validateRoleDistribution(roleConfig: RoleConfig): {

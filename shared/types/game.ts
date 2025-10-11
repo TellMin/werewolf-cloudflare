@@ -1,6 +1,9 @@
 import type { RoleId } from "@shared/roles";
 import type { RoleTeam } from "@shared/types/role";
 
+export const EXTRA_ROLE_SLOTS = 2;
+export const GRAVEYARD_TARGET_ID = "graveyard";
+
 export type GamePhase = "waiting" | "night" | "day" | "vote" | "finished";
 export type Role = RoleId;
 export type RoleConfig = Record<Role, number>;
@@ -43,4 +46,5 @@ export interface GameState {
   mode: GameMode;
   voteState?: VoteState | null;
   result?: GameResult | null;
+  graveyardRoles?: Role[];
 }

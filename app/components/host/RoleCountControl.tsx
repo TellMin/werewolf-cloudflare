@@ -6,6 +6,7 @@ interface RoleCountControlProps {
   role: Role;
   count: number;
   onChange: (delta: number) => void;
+  disabled?: boolean;
 }
 
 const TEAM_ACCENTS = {
@@ -20,9 +21,16 @@ const TEAM_ACCENTS = {
   },
 };
 
-export default function RoleCountControl({ role, count, onChange }: RoleCountControlProps) {
+export default function RoleCountControl({
+  role,
+  count,
+  onChange,
+  disabled = false,
+}: RoleCountControlProps) {
   const definition = getRoleDefinition(role);
   const accent = TEAM_ACCENTS[definition.team];
+  const minusDisabled = disabled || count === 0;
+  const plusDisabled = disabled;
 
   return (
     <div class="flex items-center justify-between gap-3">
@@ -38,7 +46,7 @@ export default function RoleCountControl({ role, count, onChange }: RoleCountCon
       <div class="flex items-center gap-2">
         <button
           onClick={() => onChange(-1)}
-          disabled={count === 0}
+          disabled={minusDisabled}
           class="w-8 h-8 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed rounded text-lg font-bold transition-colors"
         >
           -
@@ -46,7 +54,8 @@ export default function RoleCountControl({ role, count, onChange }: RoleCountCon
         <span class="w-12 text-center font-bold text-lg">{count}</span>
         <button
           onClick={() => onChange(1)}
-          class="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded text-lg font-bold transition-colors"
+          disabled={plusDisabled}
+          class="w-8 h-8 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed rounded text-lg font-bold transition-colors"
         >
           +
         </button>
