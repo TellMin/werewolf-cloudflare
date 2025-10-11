@@ -10,7 +10,7 @@ export type MessageType =
   | "role_config_update"
   | "role_assigned"
   | "vote"
-  | "action";        // 将来の拡張用
+  | "action";
 
 export interface BaseMessage {
   type: MessageType;
@@ -36,6 +36,8 @@ export interface ChatMessage extends BaseMessage {
   userId: string;
   userName: string;
   message: string;
+  visibility?: "public" | "private";
+  recipientUserId?: string;
 }
 
 export interface SystemMessage extends BaseMessage {
@@ -49,6 +51,7 @@ export interface SystemMessage extends BaseMessage {
   selfUserId?: string;
   voteState?: VoteState;
   result?: GameResult;
+  nightActionCompleted?: boolean;
 }
 
 export interface PhaseChangeMessage extends BaseMessage {
@@ -73,6 +76,13 @@ export interface VoteUpdateMessage extends BaseMessage {
   voteState: VoteState;
 }
 
+export interface NightActionAckMessage extends BaseMessage {
+  type: "action";
+  action: "ack";
+  userId: string;
+  completed: boolean;
+}
+
 export type GameMessage =
   | JoinMessage
   | LeaveMessage
@@ -81,4 +91,5 @@ export type GameMessage =
   | PhaseChangeMessage
   | RoleConfigUpdateMessage
   | RoleAssignedMessage
-  | VoteUpdateMessage;
+  | VoteUpdateMessage
+  | NightActionAckMessage;

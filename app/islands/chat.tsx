@@ -29,6 +29,7 @@ export default function Chat({ roomId, userName }: ChatProps) {
     myUserId,
     voteState,
     gameResult,
+    nightActionCompleted,
   } = useGameState(lastMessage);
   const { messages, messagesEndRef } = useChat(lastMessage);
 
@@ -55,6 +56,17 @@ export default function Chat({ roomId, userName }: ChatProps) {
     } else {
       sendMessage({ type: "cast_vote", targetUserId });
     }
+  };
+
+  const handleNightAction = (targetUserId: string | null) => {
+    if (!isConnected) return;
+
+    const message: { type: string; targetUserId?: string } = { type: "night_action" };
+    if (targetUserId) {
+      message.targetUserId = targetUserId;
+    }
+
+    sendMessage(message);
   };
 
   return (
@@ -110,6 +122,8 @@ export default function Chat({ roomId, userName }: ChatProps) {
         voteState={voteState}
         onVote={handleVote}
         gameResult={gameResult}
+        onNightAction={handleNightAction}
+        nightActionCompleted={nightActionCompleted}
       />
 
       {/* チャット */}

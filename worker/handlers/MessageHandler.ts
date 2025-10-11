@@ -3,7 +3,8 @@ import { RoleManager } from "../game/RoleManager";
 import { SessionManager } from "../session/SessionManager";
 import { BroadcastService } from "../session/BroadcastService";
 import { GamePhase, RoleConfig } from "@shared/types/game";
-import { normalizeRoleConfig } from "@shared/roles";
+import { normalizeRoleConfig, getRoleDefinition } from "@shared/roles";
+import type { Session } from "@shared/types/user";
 
 export class MessageHandler {
   constructor(
@@ -49,6 +50,10 @@ export class MessageHandler {
 
     this.gameState.setPhase(newPhase);
 
+    if (newPhase === "night") {
+      this.gameState.initializeNight(this.sessionManager.getParticipants());
+    }
+
     if (newPhase === "vote") {
       const voteState = this.gameState.startVote(this.sessionManager.getParticipants());
       this.broadcast.broadcast({
@@ -63,6 +68,99 @@ export class MessageHandler {
       phase: newPhase,
       timestamp: Date.now(),
     });
+
+    return { success: true };
+  }
+
+  handleNightAction(
+    sessionId: string,
+    session: Session,
+    payload: { targetUserId?: string }
+  ): { success: boolean; error?: string } {
+    if (this.gameState.getPhase() !== "night") {
+      return { success: false, error: "現在は夜のフェーズではありません" };
+    }
+
+    if (!session.role) {
+      return { success: false, error: "役職が未設定です" };
+    }
+
+    if (this.gameState.isNightActionCompleted(session.userId)) {
+      return { success: false, error: "夜の行動はすでに完了しています" };
+    }
+
+    switch (session.role) {
+      case "seer": {
+        const targetUserId = payload.targetUserId;
+        if (!targetUserId) {
+          return { success: false, error: "占う対象を選択してください" };
+        }
+
+        if (targetUserId === session.userId) {
+          return { success: false, error: "自分自身を占うことはできません" };
+        }
+
+        const target = this.sessionManager.findSessionByUserId(targetUserId);
+        if (!target || !target.session.role) {
+          return { success: false, error: "対象のプレイヤーが見つかりません" };
+        }
+
+        const targetRoleDef = getRoleDefinition(target.session.role);
+        const targetTeamLabel =
+          targetRoleDef.team === "villagers"
+            ? "村人陣営"
+            : targetRoleDef.team === "werewolves"
+            ? "人狼陣営"
+            : "第三陣営";
+
+        this.broadcast.sendToSession(sessionId, {
+          type: "message",
+          userId: "gm",
+          userName: "ゲームマスター",
+          message: `🔮 占い結果: ${target.session.userName} は ${targetRoleDef.name}（${targetTeamLabel}）です。`,
+          visibility: "private",
+          recipientUserId: session.userId,
+          timestamp: Date.now(),
+        });
+        break;
+      }
+      default: {
+        // 他役職は夜の行動がないため確認のみ
+        this.broadcast.sendToSession(sessionId, {
+          type: "message",
+          userId: "gm",
+          userName: "ゲームマスター",
+          message: "夜の行動はありません。確認しました。",
+          visibility: "private",
+          recipientUserId: session.userId,
+          timestamp: Date.now(),
+        });
+        break;
+      }
+    }
+
+    const markResult = this.gameState.markNightActionCompleted(session.userId);
+
+    if (!markResult.success) {
+      return { success: false, error: "夜の行動はすでに完了しています" };
+    }
+
+    this.broadcast.sendToSession(sessionId, {
+      type: "action",
+      action: "ack",
+      userId: session.userId,
+      completed: true,
+      timestamp: Date.now(),
+    });
+
+    if (markResult.allCompleted) {
+      this.gameState.setPhase("day");
+      this.broadcast.broadcast({
+        type: "phase_change",
+        phase: "day",
+        timestamp: Date.now(),
+      });
+    }
 
     return { success: true };
   }

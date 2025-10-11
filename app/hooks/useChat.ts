@@ -6,7 +6,7 @@ export function useChat(lastMessage: GameMessage | null) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (lastMessage && lastMessage.type !== "vote") {
+    if (lastMessage && lastMessage.type !== "vote" && lastMessage.type !== "action") {
       setMessages((prev) => {
         if (lastMessage.type === "phase_change" && prev.length > 0) {
           const previous = prev[prev.length - 1];

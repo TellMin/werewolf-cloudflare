@@ -1,4 +1,6 @@
 import { GameMessage } from "@shared/types/message";
+import { getRoleDefinition } from "@shared/roles";
+import { RoleTeam } from "@shared/types/role";
 
 interface MessageItemProps {
   message: GameMessage;
@@ -22,20 +24,21 @@ export default function MessageItem({ message }: MessageItemProps) {
           </span>
         </div>
       );
-    case "role_assigned":
+    case "role_assigned": {
+      const definition = getRoleDefinition(message.role);
+      const teamStyles: Record<RoleTeam, string> = {
+        villagers: "text-green-600 bg-green-50",
+        werewolves: "text-red-600 bg-red-50",
+        neutral: "text-gray-600 bg-gray-100",
+      };
       return (
         <div class="text-center py-2">
-          <span
-            class={`text-sm px-3 py-1 rounded-full font-bold ${
-              message.role === "werewolf"
-                ? "text-red-600 bg-red-50"
-                : "text-green-600 bg-green-50"
-            }`}
-          >
-            あなたの役職: {message.role === "werewolf" ? "🐺 人狼" : "👤 村人"}
+          <span class={`text-sm px-3 py-1 rounded-full font-bold ${teamStyles[definition.team]}`}>
+            あなたの役職: {definition.icon} {definition.name}
           </span>
         </div>
       );
+    }
     case "role_config_update":
       return (
         <div class="text-center py-2">
@@ -103,7 +106,10 @@ export default function MessageItem({ message }: MessageItemProps) {
           </span>
         </div>
       );
-    case "message":
+    case "message": {
+      const isWhisper = message.visibility === "private";
+      const bubbleClass = isWhisper ? "bg-indigo-100" : "bg-gray-100";
+      const textClass = isWhisper ? "text-indigo-900" : "text-gray-800";
       return (
         <div class="mb-4">
           <div class="flex items-start gap-2">
@@ -115,14 +121,22 @@ export default function MessageItem({ message }: MessageItemProps) {
                 <span class="text-xs text-gray-400">
                   {formatTime(message.timestamp)}
                 </span>
+                {isWhisper && (
+                  <span class="text-[10px] uppercase tracking-wide text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">
+                    Whisper
+                  </span>
+                )}
               </div>
-              <div class="bg-gray-100 rounded-lg px-4 py-2 inline-block">
-                <p class="text-gray-800">{message.message}</p>
+              <div class={`${bubbleClass} rounded-lg px-4 py-2 inline-block`}>
+                <p class={textClass}>{message.message}</p>
               </div>
             </div>
           </div>
         </div>
       );
+    }
+    case "action":
+      return null;
     default:
       return null;
   }

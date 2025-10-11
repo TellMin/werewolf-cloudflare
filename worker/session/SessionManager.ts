@@ -36,6 +36,15 @@ export class SessionManager {
     return null;
   }
 
+  findSessionByUserId(userId: string): { sessionId: string; session: Session } | null {
+    for (const [id, session] of this.sessions.entries()) {
+      if (session.userId === userId) {
+        return { sessionId: id, session };
+      }
+    }
+    return null;
+  }
+
   getParticipants(): User[] {
     return Array.from(this.sessions.values()).map((s) => ({
       userId: s.userId,

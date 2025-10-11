@@ -14,6 +14,7 @@ export function useGameState(lastMessage: GameMessage | null) {
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [voteState, setVoteState] = useState<VoteState | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [nightActionCompleted, setNightActionCompleted] = useState(false);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -28,6 +29,9 @@ export function useGameState(lastMessage: GameMessage | null) {
         if (lastMessage.selfUserId) setMyUserId(lastMessage.selfUserId);
         if (lastMessage.voteState) setVoteState(lastMessage.voteState);
         if (lastMessage.result) setGameResult(lastMessage.result);
+        if (lastMessage.nightActionCompleted !== undefined) {
+          setNightActionCompleted(lastMessage.nightActionCompleted);
+        }
         break;
 
       case "join":
@@ -45,6 +49,7 @@ export function useGameState(lastMessage: GameMessage | null) {
         } else {
           setGameResult(null);
         }
+        setNightActionCompleted(false);
         break;
 
       case "role_config_update":
@@ -59,8 +64,13 @@ export function useGameState(lastMessage: GameMessage | null) {
       case "vote":
         setVoteState(lastMessage.voteState);
         break;
+      case "action":
+        if (lastMessage.action === "ack" && lastMessage.userId === myUserId) {
+          setNightActionCompleted(lastMessage.completed);
+        }
+        break;
     }
-  }, [lastMessage]);
+  }, [lastMessage, myUserId]);
 
   return {
     phase,
@@ -73,5 +83,6 @@ export function useGameState(lastMessage: GameMessage | null) {
     myUserId,
     voteState,
     gameResult,
+    nightActionCompleted,
   };
 }

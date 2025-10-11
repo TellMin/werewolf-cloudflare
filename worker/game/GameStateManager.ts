@@ -27,6 +27,7 @@ export class GameStateManager {
   private state: GameState;
   private voteSession: VoteSessionInternal | null;
   private gameResult: GameResult | null;
+  private nightActionStatus: Map<string, boolean>;
 
   constructor() {
     this.state = {
@@ -36,6 +37,7 @@ export class GameStateManager {
     };
     this.voteSession = null;
     this.gameResult = null;
+    this.nightActionStatus = new Map();
   }
 
   getPhase(): GamePhase {
@@ -50,6 +52,7 @@ export class GameStateManager {
       this.state.voteState = null;
       this.gameResult = null;
       this.state.result = null;
+      this.nightActionStatus.clear();
       return;
     }
 
@@ -61,6 +64,10 @@ export class GameStateManager {
     if (phase !== "finished") {
       this.gameResult = null;
       this.state.result = null;
+    }
+
+    if (phase !== "night") {
+      this.nightActionStatus.clear();
     }
   }
 
@@ -83,6 +90,48 @@ export class GameStateManager {
       voteState: this.state.voteState ? { ...this.state.voteState } : null,
       result: this.state.result ? { ...this.state.result } : null,
     };
+  }
+
+  initializeNight(participants: User[]): void {
+    this.nightActionStatus = new Map();
+    for (const participant of participants) {
+      this.nightActionStatus.set(participant.userId, false);
+    }
+  }
+
+  addNightParticipant(userId: string): void {
+    if (!this.nightActionStatus.has(userId)) {
+      this.nightActionStatus.set(userId, false);
+    }
+  }
+
+  markNightActionCompleted(userId: string): { success: boolean; allCompleted: boolean } {
+    if (!this.nightActionStatus.has(userId)) {
+      return { success: false, allCompleted: false };
+    }
+
+    if (this.nightActionStatus.get(userId)) {
+      return { success: false, allCompleted: this.areAllNightActionsCompleted() };
+    }
+
+    this.nightActionStatus.set(userId, true);
+    return { success: true, allCompleted: this.areAllNightActionsCompleted() };
+  }
+
+  isNightActionCompleted(userId: string): boolean {
+    return this.nightActionStatus.get(userId) ?? false;
+  }
+
+  private areAllNightActionsCompleted(): boolean {
+    if (this.nightActionStatus.size === 0) {
+      return false;
+    }
+    for (const completed of this.nightActionStatus.values()) {
+      if (!completed) {
+        return false;
+      }
+    }
+    return true;
   }
 
   startVote(participants: User[]): VoteState {

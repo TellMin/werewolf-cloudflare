@@ -29,12 +29,9 @@ export default function HostControls({ phase, canStartGame, onPhaseChange }: Hos
           </button>
         )}
         {phase === "night" && (
-          <button
-            onClick={() => onPhaseChange("day")}
-            class="px-4 py-2 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition-colors"
-          >
-            ☀️ 昼へ
-          </button>
+          <span class="px-4 py-2 text-sm text-indigo-700 bg-indigo-50 border border-indigo-200 rounded">
+            夜の行動完了後に自動で昼フェーズへ移行します
+          </span>
         )}
         {phase === "day" && (
           <button

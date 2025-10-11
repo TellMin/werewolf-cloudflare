@@ -15,6 +15,8 @@ interface GameBoardProps {
   voteState: VoteState | null;
   onVote: (targetUserId: string | null) => void;
   gameResult: GameResult | null;
+  onNightAction: (targetUserId: string | null) => void;
+  nightActionCompleted: boolean;
 }
 
 export default function GameBoard({
@@ -26,11 +28,21 @@ export default function GameBoard({
   voteState,
   onVote,
   gameResult,
+  onNightAction,
+  nightActionCompleted,
 }: GameBoardProps) {
   return (
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       {phase === "waiting" && <WaitingPhase isHost={isHost} />}
-      {phase === "night" && <NightPhase myRole={myRole} />}
+      {phase === "night" && (
+        <NightPhase
+          myRole={myRole}
+          participants={participants}
+          myUserId={myUserId}
+          onAction={onNightAction}
+          hasCompletedAction={nightActionCompleted}
+        />
+      )}
       {phase === "day" && <DayPhase myRole={myRole} />}
       {phase === "vote" && (
         <VotePhase

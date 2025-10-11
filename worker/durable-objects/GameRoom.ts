@@ -52,10 +52,15 @@ export class GameRoom extends DurableObject {
       isHost,
     });
 
+    if (this.gameState.getPhase() === "night") {
+      this.gameState.addNightParticipant(userId);
+    }
+
     const participants = this.sessionManager.getParticipants();
     const canStartGame = this.gameState.canStartGame(this.sessionManager.getSessionCount());
     const voteState = this.gameState.getVoteState();
     const gameResult = this.gameState.getResult();
+    const nightActionCompleted = this.gameState.isNightActionCompleted(userId);
 
     this.broadcast.broadcast(
       {
@@ -79,6 +84,7 @@ export class GameRoom extends DurableObject {
       selfUserId: userId,
       voteState: voteState ?? undefined,
       result: gameResult ?? undefined,
+      nightActionCompleted: nightActionCompleted || undefined,
       timestamp: Date.now(),
     });
 
@@ -129,6 +135,18 @@ export class GameRoom extends DurableObject {
         const result = this.messageHandler.handleVote(session.userId, {
           targetUserId: parsedMessage.targetUserId,
           abstain: parsedMessage.abstain,
+        });
+
+        if (!result.success && result.error) {
+          this.broadcast.sendToSession(sessionId, {
+            type: "system",
+            message: result.error,
+            timestamp: Date.now(),
+          });
+        }
+      } else if (parsedMessage.type === "night_action") {
+        const result = this.messageHandler.handleNightAction(sessionId, session, {
+          targetUserId: parsedMessage.targetUserId,
         });
 
         if (!result.success && result.error) {
