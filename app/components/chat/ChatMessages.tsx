@@ -1,9 +1,10 @@
+import type { RefObject } from "hono/jsx";
 import { GameMessage } from "@shared/types/message";
 import MessageItem from "./MessageItem";
 
 interface ChatMessagesProps {
   messages: GameMessage[];
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: RefObject<HTMLDivElement>;
 }
 
 export default function ChatMessages({ messages, messagesEndRef }: ChatMessagesProps) {

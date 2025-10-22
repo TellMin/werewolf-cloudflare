@@ -1,10 +1,11 @@
+import type { RefObject } from "hono/jsx";
 import { GameMessage } from "@shared/types/message";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 
 interface ChatPanelProps {
   messages: GameMessage[];
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: RefObject<HTMLDivElement>;
   isConnected: boolean;
   onSendMessage: (message: string) => void;
 }
