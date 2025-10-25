@@ -38,8 +38,6 @@ npm run deploy
     - `index.tsx`: ルーム作成/参加画面
     - `room/[id].tsx`: ゲームルーム画面
     - `api/room/[id].ts`: WebSocket 接続用 API エンドポイント（Durable Object へのプロキシ）
-  - **islands/**: クライアントサイドインタラクティブコンポーネント（Islands アーキテクチャ）
-    - `chat.tsx`: WebSocket ベースのチャット、ゲーム管理 UI
   - **server.ts**: HonoX アプリケーションのエントリーポイント
   - **client.ts**: クライアントサイドエントリーポイント
   - **global.d.ts**: 型定義（Hono 環境の Bindings 設定）
@@ -73,7 +71,7 @@ npm run deploy
 1. クライアントが `/api/room/[id]` に WebSocket 接続を要求
 2. API ルート（`app/routes/api/room/[id].ts`）が Durable Object にリクエストを転送
 3. GameRoom Durable Object が接続を受け入れ、WebSocket ペアを作成
-4. クライアント（`app/islands/chat.tsx`）とサーバー間でリアルタイムメッセージング
+4. クライアント（`app/component/chat.tsx`）とサーバー間でリアルタイムメッセージング
 5. メッセージタイプ:
    - `join`/`leave`: 参加者の入退室
    - `message`: チャットメッセージ

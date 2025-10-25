@@ -1,5 +1,5 @@
 import { createRoute } from "honox/factory";
-import Chat from "../../islands/chat";
+import Chat from "../../components/chat/chat";
 
 export default createRoute((c) => {
   const roomId = c.req.param("id");

@@ -1,13 +1,13 @@
-import { useWebSocket } from "../hooks/useWebSocket";
-import { useGameState } from "../hooks/useGameState";
-import { useChat } from "../hooks/useChat";
-import ConnectionStatus from "../components/common/ConnectionStatus";
-import PhaseDisplay from "../components/game/PhaseDisplay";
-import ParticipantList from "../components/participants/ParticipantList";
-import RoleConfigPanel from "../components/host/RoleConfigPanel";
-import HostControls from "../components/host/HostControls";
-import GameBoard from "../components/game/GameBoard";
-import ChatPanel from "../components/chat/ChatPanel";
+import { useWebSocket } from "../../hooks/useWebSocket";
+import { useGameState } from "../../hooks/useGameState";
+import { useChat } from "../../hooks/useChat";
+import ConnectionStatus from "../common/ConnectionStatus";
+import PhaseDisplay from "../game/PhaseDisplay";
+import ParticipantList from "../participants/ParticipantList";
+import RoleConfigPanel from "../host/RoleConfigPanel";
+import HostControls from "../host/HostControls";
+import GameBoard from "../game/GameBoard";
+import ChatPanel from "./ChatPanel";
 import { GamePhase, Role } from "@shared/types/game";
 import { normalizeRoleConfig } from "@shared/roles";
 
@@ -17,7 +17,10 @@ interface ChatProps {
 }
 
 export default function Chat({ roomId, userName }: ChatProps) {
-  const { isConnected, lastMessage, sendMessage } = useWebSocket(roomId, userName);
+  const { isConnected, lastMessage, sendMessage } = useWebSocket(
+    roomId,
+    userName
+  );
   const {
     phase,
     isHost,
@@ -39,7 +42,10 @@ export default function Chat({ roomId, userName }: ChatProps) {
 
   const handleRoleChange = (role: Role, increment: number) => {
     const updatedCount = Math.max(0, (roleConfig[role] ?? 0) + increment);
-    const newConfig = normalizeRoleConfig({ ...roleConfig, [role]: updatedCount });
+    const newConfig = normalizeRoleConfig({
+      ...roleConfig,
+      [role]: updatedCount,
+    });
     setRoleConfig(newConfig);
     sendMessage({ type: "update_role_config", roleConfig: newConfig });
   };
@@ -61,7 +67,9 @@ export default function Chat({ roomId, userName }: ChatProps) {
   const handleNightAction = (targetUserId: string | null) => {
     if (!isConnected) return;
 
-    const message: { type: string; targetUserId?: string } = { type: "night_action" };
+    const message: { type: string; targetUserId?: string } = {
+      type: "night_action",
+    };
     if (targetUserId) {
       message.targetUserId = targetUserId;
     }
@@ -86,7 +94,10 @@ export default function Chat({ roomId, userName }: ChatProps) {
 
       {/* 接続状態とフェーズ */}
       <div class="flex items-center justify-between">
-        <ConnectionStatus isConnected={isConnected} participantCount={participants.length} />
+        <ConnectionStatus
+          isConnected={isConnected}
+          participantCount={participants.length}
+        />
         <PhaseDisplay phase={phase} isHost={isHost} />
       </div>
 
@@ -98,7 +109,9 @@ export default function Chat({ roomId, userName }: ChatProps) {
         roleConfig={roleConfig}
         participantCount={participants.length}
         canStartGame={canStartGame}
-        onRoleChange={isHost && phase === "waiting" ? handleRoleChange : undefined}
+        onRoleChange={
+          isHost && phase === "waiting" ? handleRoleChange : undefined
+        }
         readOnly={!(isHost && phase === "waiting")}
       />
 
